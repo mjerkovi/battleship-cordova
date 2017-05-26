@@ -8,15 +8,21 @@
   }
 
   .board {
-    width: 100%;
+    width: 90%;
+    margin: 0 auto;
     table {
       width: 100%;
     }
     td {
-      width: 33%;
-      height: 50px;
+      width: 12.5%;
+      height: 35px;
       border: solid 2px black;
     }
   }
+
+  .board2 {
+    margin-top: 10px !important;
+  }
+
 
 }

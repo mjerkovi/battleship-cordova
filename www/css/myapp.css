@@ -9,15 +9,20 @@
 }
 /* line 10, ../sass/_main.scss */
 .app .board {
-  width: 100%;
+  width: 90%;
+  margin: 0 auto;
 }
-/* line 12, ../sass/_main.scss */
+/* line 13, ../sass/_main.scss */
 .app .board table {
   width: 100%;
 }
-/* line 15, ../sass/_main.scss */
+/* line 16, ../sass/_main.scss */
 .app .board td {
-  width: 33%;
-  height: 50px;
+  width: 12.5%;
+  height: 35px;
   border: solid 2px black;
+}
+/* line 23, ../sass/_main.scss */
+.app .board2 {
+  margin-top: 10px !important;
 }
