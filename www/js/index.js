@@ -5,7 +5,7 @@ var app = function() {
     self.is_configured = false;
 
     var server_url = "https://luca-ucsc-teaching-backend.appspot.com/keystore/";
-    var call_interval = 4000;
+    var call_interval = 2000;
 
     Vue.config.silent = false; // show all warnings
 
@@ -80,7 +80,8 @@ var app = function() {
                         'player_1': self.player_1,
                         'player_2': self.player_2,
                         'player1_board': self.vue.player1_board,
-                        'player2_board': self.vue.player2_board
+                        'player2_board': self.vue.player2_board,
+                        'turn_counter': self.vue.turn_counter
                     }
                 )
             }
@@ -88,21 +89,19 @@ var app = function() {
     };
 
     self.process_server_data = function (data) {
-        console.log("My ident: " + self.my_identity);
         if (!data.result) {
             self.player_1 = self.my_identity;
             self.player_2 = null;
             self.vue.player1_board = getBoard();
             self.vue.player2_board = self.null_board;
             self.vue.is_my_turn = false;
+            self.vue.turn_counter = 0;
             self.send_state();
         }
         // the server already has the magic word stored so the result is not null.
         // although may not be "our" game if there was a conflict with the magic word.
         else {
             self.server_answer = JSON.parse(data.result);
-            console.log(self.server_answer.player1_board);
-            console.log(self.server_answer.player2_board);
             self.player_1 = self.server_answer.player_1;
             self.player_2 = self.server_answer.player_2;
             //one or both of the players are missing
@@ -110,6 +109,7 @@ var app = function() {
                 self.vue.is_my_turn = false;
                 if (self.player_1 === self.my_identity || self.player_2 === self.my_identity) {
                     console.log("Waiting for other player to join");
+                    self.vue.intruding = false;
                 } else {
                     console.log("Signing up now.");
                     if (self.player_1 === null) {
@@ -126,6 +126,7 @@ var app = function() {
                     } else {
                         console.log("Oops intruding1");
                         self.vue.need_new_magic_word = true;
+                        self.vue.intruding = true;
                     }
                 }
             }
@@ -136,8 +137,10 @@ var app = function() {
                 if (self.player_1 !== self.my_identity && self.player_2 !== self.my_identity) {
                     console.log("Oops intruding2");
                     self.vue.need_new_magic_word = true;
+                    self.vue.intruding = true;
                 } else {
                     // okay now i am in the appropriate game and both players are here
+                    self.vue.is_other_present = true;
                     self.update_local_vars(self.server_answer);
                 }
             }
@@ -153,14 +156,29 @@ var app = function() {
             self.vue.my_role = "";
         }
 
-        //********* change this
-        self.vue.player1_board = self.server_answer.player1_board;
-        self.vue.player2_board = self.server_answer.player2_board;
+        // the server response is the most up to date
+        if (self.vue.turn_counter <= server_answer.turn_counter) {
+            self.vue.player1_board = server_answer.player1_board;
+            self.vue.player2_board = server_answer.player2_board;
+            self.vue.turn_counter = server_answer.turn_counter;
+        } else if (self.vue.turn_counter > server_answer.turn_counter) {
+            // local state is most up to date, so send it to the server
+            self.send_state();
+        }
+
+        if (((self.vue.turn_counter % 2) === 0) && self.vue.my_role === "player_1") {
+            self.vue.is_my_turn = true;
+        } else if (((self.vue.turn_counter % 2) !== 0) && self.vue.my_role === "player_2") {
+            self.vue.is_my_turn = true;
+        } else {
+            self.vue.is_my_turn = false;
+        }
     }
 
 
 
-    self.magic_word_prefix = "lololyadayada596";
+
+    self.magic_word_prefix = "lololyawdadadayada596";
 
     self.set_magic_word = function () {
         self.vue.chosen_magic_word = self.magic_word_prefix.concat(self.vue.magic_word);
@@ -170,6 +188,51 @@ var app = function() {
         self.vue.is_my_turn = false;
         self.vue.my_identity = "";
     };
+
+    self.play = function(i, j) {
+        if (!self.vue.is_my_turn) {
+            console.log("Not your turn");
+            return;
+        }
+        var opponent_board = null;
+        if (self.vue.my_role === "player_1") {
+            opponent_board = self.vue.player2_board;
+        } else {
+            opponent_board = self.vue.player1_board;
+        }
+
+        console.log(opponent_board);
+
+        // you clicked on water so just change the * -> w to indicate a miss
+        if (opponent_board[i * 8 + j] === '*') {
+            console.log("Hit water");
+            opponent_board[i * 8 + j] = 'w';
+        } else if (opponent_board[i * 8 + j] < 0) {
+            // if the spot that was clicked contains an integer that is less than zero
+            // then that location has already been shot at. so return without incrementing
+            // the turn counter
+            console.log("Ship already hit");
+            return;
+        } else {
+            // there is a non-negative integer in spot i, j so negate it
+            // to indicate that the spot has been hit
+            opponent_board[i * 8 + j] = -opponent_board[i * 8 + j];
+        }
+
+        if (self.vue.my_role === 'player_1') {
+            self.vue.player2_board = opponent_board;
+        } else {
+            self.vue.player1_board = opponent_board;
+        }
+
+        // check if game is won either here or on a server get
+        ++self.vue.turn_counter;
+        self.vue.is_my_turn = false;
+
+
+        self.send_state();
+
+    }
 
         //checks for valid placement of ship of ship_size in a board_size x board_size at (x,y) with orientatation (0->horizontal, 1-> vertical)
     function isvalid(board, x, y, orientation, ship_size, board_size){
@@ -293,16 +356,16 @@ var app = function() {
             chosen_magic_word: null,
             need_new_magic_word: false,
             my_role: "",
-            my_board: self.null_board,
-            opponent_board: self.null_board,
             player1_board: self.null_board,
             player2_board: self.null_board,
             is_other_present: false,
-            is_my_turn: false
+            is_my_turn: false,
+            intruding: false,
+            turn_counter: null
         },
         methods: {
-            set_magic_word: self.set_magic_word
-            //play: self.play
+            set_magic_word: self.set_magic_word,
+            play: self.play
 
         }
 
