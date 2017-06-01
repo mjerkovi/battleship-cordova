@@ -347,6 +347,46 @@ var app = function() {
         return board;
     }
 
+    self.is_red = function(idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player1_board[idx];
+        } else { entry = self.vue.player2_board[idx]; }
+        if (Number.isInteger(entry)) {
+            return entry < 0;
+        } else {
+            return false;
+        }
+    }
+
+    self.is_green = function(idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player1_board[idx];
+        } else { entry = self.vue.player2_board[idx]; }
+        if (Number.isInteger(entry)) {
+            return entry > 0;
+        } else {
+            return false;
+        }
+    }
+
+    self.is_blue = function(idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player1_board[idx];
+        } else { entry = self.vue.player2_board[idx]; }
+        return entry === 'w';
+    }
+
+    self.is_white = function(idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player1_board[idx];
+        } else { entry = self.vue.player2_board[idx]; }
+        return entry === '*';
+    }
+
     self.vue = new Vue({
         el: "#vue-div",
         delimiters: ['${', '}'],
@@ -365,8 +405,11 @@ var app = function() {
         },
         methods: {
             set_magic_word: self.set_magic_word,
-            play: self.play
-
+            play: self.play,
+            is_red: self.is_red,
+            is_green: self.is_green,
+            is_blue: self.is_blue,
+            is_white: self.is_white
         }
 
     });
