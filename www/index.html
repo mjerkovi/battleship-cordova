@@ -46,30 +46,48 @@
 
     <div id="vue-div" class="app" style="display:none">
 
-        <div class="top_input">
+      <!--  <div class="top_input">
             <input v-model="magic_word" placeholder="shared magic word" />
             <button class="half" v-on:click="set_magic_word">Play</button>
             <button class="half"  v-on:click="">Blah</button>
+        </div> -->
+
+        <div class="container">
+            <div class="threequarters compressible">
+                <input v-model="magic_word" placeholder="shared magic word" />
+                <div v-if="intruding">
+                    Magic word already taken. Please enter a new magic word.
+                </div>
+                <div class="padded" v-if="is_other_present">
+                    Other player has joined.
+                </div>
+                <div class="padded" v-if="is_my_turn">
+                    Your turn to play.
+                </div>
+                <div class="padded" v-if="winner === my_role">
+                    You are the winner!
+                </div>
+                <div class="padded" v-if="winner !== null && winner !== my_role">
+                    You have lost!
+                </div>
+
+            </div>
+            <div class="quarter compressible">
+                <button v-on:click="set_magic_word">Play</button>
+                <button v-if="winner !== null" v-on:click="start_new_game">New</button>
+            </div>
         </div>
 
 
-        <div v-if="my_role !== '' "class="role">
-            You are: ${my_role}
-        </div>
-
-        <div v-if="intruding">
-            Magic word already taken. Please enter a new magic word.
-        </div>
-
-        <div v-if="is_other_present">
-            Other player has joined.
-        </div>
 
         <div class="board container" v-if="my_role === 'player_2'">
             <table>
                 <tr v-for="i in [0, 1, 2, 3, 4, 5, 6, 7]">
-                    <td v-on:click="play(i,j)" v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
-                        ${player1_board[i * 8 + j]}
+                    <td v-bind:class="{red: is_red_square(i * 8 + j), white: !is_red_square(i * 8 + j)}"
+                        v-on:click="play(i,j)" v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
+                        <div class="center">
+                            <i v-if="is_blue_dot(i * 8 + j)" class="fa fa-circle" style="color: dodgerblue;" aria-hidden="true"></i>
+                        </div>
                     </td>
                 </tr>
             </table>
@@ -78,8 +96,11 @@
         <div class="board container" v-if="my_role === 'player_1'">
             <table>
                 <tr v-for="i in [0, 1, 2, 3, 4, 5, 6, 7]">
-                    <td v-on:click="play(i,j)" v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
-                        ${player2_board[i * 8 + j]}
+                    <td v-bind:class="{red: is_red_square(i * 8 + j), white: !is_red_square(i * 8 + j)}"
+                        v-on:click="play(i,j)" v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
+                        <div class="center">
+                            <i v-if="is_blue_dot(i * 8 + j)" class="fa fa-circle" style="color: dodgerblue;" aria-hidden="true"></i>
+                        </div>
                     </td>
                 </tr>
             </table>
@@ -90,7 +111,6 @@
                 <tr v-for="i in [0, 1, 2, 3, 4, 5, 6, 7]">
                     <td v-bind:class="{red: is_red(8 * i + j), green: is_green(8 * i + j), aqua: is_blue(8 * i + j), white: is_white(8 * i + j)}"
                         v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
-                        ${player1_board[i * 8 + j]}
                     </td>
                 </tr>
             </table>
@@ -101,14 +121,9 @@
                 <tr v-for="i in [0, 1, 2, 3, 4, 5, 6, 7]">
                     <td v-bind:class="{red: is_red(8 * i + j), green: is_green(8 * i + j), aqua: is_blue(8 * i + j), white: is_white(8 * i + j)}"
                         v-for="j in [0, 1, 2, 3, 4, 5, 6, 7]">
-                        ${player2_board[i * 8 + j]}
                     </td>
                 </tr>
             </table>
-        </div>
-
-        <div v-if="is_my_turn" class="turn_indicators">
-            Play ${my_role}
         </div>
 
     </div>

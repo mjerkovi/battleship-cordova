@@ -81,7 +81,8 @@ var app = function() {
                         'player_2': self.player_2,
                         'player1_board': self.vue.player1_board,
                         'player2_board': self.vue.player2_board,
-                        'turn_counter': self.vue.turn_counter
+                        'turn_counter': self.vue.turn_counter,
+                        'game_counter': self.vue.game_counter
                     }
                 )
             }
@@ -96,6 +97,7 @@ var app = function() {
             self.vue.player2_board = self.null_board;
             self.vue.is_my_turn = false;
             self.vue.turn_counter = 0;
+            self.vue.game_counter = 0;
             self.send_state();
         }
         // the server already has the magic word stored so the result is not null.
@@ -141,6 +143,7 @@ var app = function() {
                 } else {
                     // okay now i am in the appropriate game and both players are here
                     self.vue.is_other_present = true;
+                    self.vue.intruding = false;
                     self.update_local_vars(self.server_answer);
                 }
             }
@@ -166,6 +169,8 @@ var app = function() {
             self.send_state();
         }
 
+
+
         if (((self.vue.turn_counter % 2) === 0) && self.vue.my_role === "player_1") {
             self.vue.is_my_turn = true;
         } else if (((self.vue.turn_counter % 2) !== 0) && self.vue.my_role === "player_2") {
@@ -173,12 +178,14 @@ var app = function() {
         } else {
             self.vue.is_my_turn = false;
         }
+
+        check_winner();
     }
 
 
 
 
-    self.magic_word_prefix = "lololyawdadadayada596";
+    self.magic_word_prefix = "wdaj98d798yien12jqd9dwadk";
 
     self.set_magic_word = function () {
         self.vue.chosen_magic_word = self.magic_word_prefix.concat(self.vue.magic_word);
@@ -188,6 +195,46 @@ var app = function() {
         self.vue.is_my_turn = false;
         self.vue.my_identity = "";
     };
+
+    // check to see if the ship that was just hit has sunk. if so change all of the
+    // bordering water markers to 'w'
+    function check_ship_sunk(board, idx) {
+    }
+
+    // if there are ten squares with negative numbers, then there is a winner
+    function check_winner() {
+        var num_neg = 0;
+        for (var i = 0; i < self.vue.player1_board.length; ++i) {
+            if (Number.isInteger(self.vue.player1_board[i])) {
+                if (self.vue.player1_board[i] < 0) {
+                    ++num_neg;
+                }
+            }
+        }
+        console.log("Player1 num_neg" + num_neg);
+        if (num_neg === 10){
+            self.vue.winner = "player_2";
+            self.vue.is_my_turn = false;
+            console.log("player2 won");
+        }
+
+        num_neg = 0;
+        for (var j = 0; j < self.vue.player2_board.length; ++j) {
+            if (Number.isInteger(self.vue.player2_board[j])) {
+                if (self.vue.player2_board[j] < 0) {
+                    ++num_neg;
+                }
+            }
+        }
+        console.log("Player2 num_neg" + num_neg);
+        if (num_neg === 10){
+            self.vue.winner = "player_1";
+            self.vue.is_my_turn = false;
+            console.log("player1 won");
+        }
+
+
+    }
 
     self.play = function(i, j) {
         if (!self.vue.is_my_turn) {
@@ -207,16 +254,17 @@ var app = function() {
         if (opponent_board[i * 8 + j] === '*') {
             console.log("Hit water");
             opponent_board[i * 8 + j] = 'w';
-        } else if (opponent_board[i * 8 + j] < 0) {
+        } else if (opponent_board[i * 8 + j]=== 'w' || opponent_board[i * 8 + j] < 0) {
             // if the spot that was clicked contains an integer that is less than zero
             // then that location has already been shot at. so return without incrementing
             // the turn counter
-            console.log("Ship already hit");
+            console.log("Ship or water already hit");
             return;
         } else {
             // there is a non-negative integer in spot i, j so negate it
             // to indicate that the spot has been hit
             opponent_board[i * 8 + j] = -opponent_board[i * 8 + j];
+            check_ship_sunk(opponent_board, (i * 8 + j));
         }
 
         if (self.vue.my_role === 'player_1') {
@@ -387,6 +435,27 @@ var app = function() {
         return entry === '*';
     }
 
+    self.is_blue_dot = function (idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player2_board[idx];
+        } else { entry = self.vue.player1_board[idx]; }
+        // not exactly, need to color entries next to sunken ship
+        return entry === 'w';
+    }
+
+    self.is_red_square = function(idx) {
+        var entry = null;
+        if(self.vue.my_role === "player_1") {
+            entry = self.vue.player2_board[idx];
+        } else { entry = self.vue.player1_board[idx]; }
+        if (Number.isInteger(entry)) {
+            return entry < 0;
+        } else {
+            return false;
+        }
+    }
+
     self.vue = new Vue({
         el: "#vue-div",
         delimiters: ['${', '}'],
@@ -401,7 +470,9 @@ var app = function() {
             is_other_present: false,
             is_my_turn: false,
             intruding: false,
-            turn_counter: null
+            turn_counter: null,
+            game_counter: null,
+            winner: null
         },
         methods: {
             set_magic_word: self.set_magic_word,
@@ -409,7 +480,9 @@ var app = function() {
             is_red: self.is_red,
             is_green: self.is_green,
             is_blue: self.is_blue,
-            is_white: self.is_white
+            is_white: self.is_white,
+            is_blue_dot: self.is_blue_dot,
+            is_red_square: self.is_red_square
         }
 
     });
