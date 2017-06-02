@@ -55,7 +55,7 @@
         <div class="container">
             <div class="threequarters compressible">
                 <input v-model="magic_word" placeholder="shared magic word" />
-                <div v-if="intruding">
+                <div class="padded" v-if="intruding">
                     Magic word already taken. Please enter a new magic word.
                 </div>
                 <div class="padded" v-if="is_other_present">

@@ -160,13 +160,23 @@ var app = function() {
         }
 
         // the server response is the most up to date
-        if (self.vue.turn_counter <= server_answer.turn_counter) {
+        if(self.vue.game_counter < server_answer.game_counter){
             self.vue.player1_board = server_answer.player1_board;
             self.vue.player2_board = server_answer.player2_board;
             self.vue.turn_counter = server_answer.turn_counter;
-        } else if (self.vue.turn_counter > server_answer.turn_counter) {
-            // local state is most up to date, so send it to the server
+        }
+        else if(self.vue.game_counter > server_answer.game_counter){
             self.send_state();
+        }
+        else {
+            if (self.vue.turn_counter <= server_answer.turn_counter) {
+                self.vue.player1_board = server_answer.player1_board;
+                self.vue.player2_board = server_answer.player2_board;
+                self.vue.turn_counter = server_answer.turn_counter;
+            } else if (self.vue.turn_counter > server_answer.turn_counter) {
+                // local state is most up to date, so send it to the server
+                self.send_state();
+            }
         }
 
 
@@ -179,10 +189,21 @@ var app = function() {
             self.vue.is_my_turn = false;
         }
 
+        if (self.vue.turn_counter === 0) {
+            self.vue.winner = null;
+        }
+
         check_winner();
     }
 
-
+    self.start_new_game = function() {
+        ++self.vue.game_counter;
+        self.vue.turn_counter = 0;
+        self.vue.player1_board = getBoard();
+        self.vue.player2_board = getBoard();
+        self.vue.winner = null;
+        self.send_state();
+    }
 
 
     self.magic_word_prefix = "wdaj98d798yien12jqd9dwadk";
@@ -477,6 +498,7 @@ var app = function() {
         methods: {
             set_magic_word: self.set_magic_word,
             play: self.play,
+            start_new_game: self.start_new_game,
             is_red: self.is_red,
             is_green: self.is_green,
             is_blue: self.is_blue,
