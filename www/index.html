@@ -58,8 +58,11 @@
                 <div class="padded" v-if="intruding">
                     Magic word already taken. Please enter a new magic word.
                 </div>
+                <div class="padded" v-if="waiting_on_opp">
+                    Waiting on opponent.
+                </div>
                 <div class="padded" v-if="is_other_present">
-                    Other player has joined.
+                    Opponent has joined.
                 </div>
                 <div class="padded" v-if="is_my_turn">
                     Your turn to play.

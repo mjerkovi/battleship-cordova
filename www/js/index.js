@@ -98,6 +98,7 @@ var app = function() {
             self.vue.is_my_turn = false;
             self.vue.turn_counter = 0;
             self.vue.game_counter = 0;
+            self.vue.waiting_on_opp = true;
             self.send_state();
         }
         // the server already has the magic word stored so the result is not null.
@@ -118,12 +119,14 @@ var app = function() {
                         self.player_1 = self.my_identity;
                         self.vue.player1_board = getBoard();
                         self.vue.player2_board = self.server_answer.player2_board;
+                        self.vue.waiting_on_opp = true;
                         self.send_state();
                     } else if (self.player_2 === null) {
                         self.player_2 = self.my_identity;
                         // i am now player_2 so i must set up my board and push it to the server
                         self.vue.player2_board = getBoard();
                         self.vue.player1_board = self.server_answer.player1_board;
+                        self.vue.waiting_on_opp = true;
                         self.send_state();
                     } else {
                         console.log("Oops intruding1");
@@ -144,6 +147,7 @@ var app = function() {
                     // okay now i am in the appropriate game and both players are here
                     self.vue.is_other_present = true;
                     self.vue.intruding = false;
+                    self.vue.waiting_on_opp = false;
                     self.update_local_vars(self.server_answer);
                 }
             }
@@ -212,14 +216,150 @@ var app = function() {
         self.vue.chosen_magic_word = self.magic_word_prefix.concat(self.vue.magic_word);
         self.vue.need_new_magic_word = false;
         // Resets board and turn.
-        self.vue.board = self.null_board;
         self.vue.is_my_turn = false;
-        self.vue.my_identity = "";
+        ///////************
+        self.vue.my_role = "";
+        self.vue.waiting_on_opp = false;
+        self.vue.is_other_present = false;
+        self.vue.winner = null;
     };
+
+    function finish_sinking(board, idx) {
+        var ship_index = board.indexOf(board[idx]);
+        var ship_indeces = [ship_index];
+
+        while(true) {
+            if ((ship_index + 1) < board.length) {
+                // ship is horizontal
+                if (board[ship_index + 1] === board[idx]) {
+                    ship_index = ship_index + 1;
+                    ship_indeces = ship_indeces.concat(ship_index);
+                    continue;
+                }
+            }
+
+            if ((ship_index + 8) < board.length) {
+                // ship is vertical
+                if (board[ship_index + 8] === board[idx]) {
+                    ship_index = ship_index + 8;
+                    ship_indeces = ship_indeces.concat(ship_index);
+                    continue;
+                }
+            }
+            //no more ship
+            break;
+        }
+
+        // now add 'w' to the neighbors of the ship
+        for (var i = 0; i < ship_indeces.length; ++i) {
+            if (ship_indeces[i] < 8) {
+                if (ship_indeces[i] % 8 === 0) {
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                }
+                else if (ship_indeces[i] % 8 === 7) {
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                }
+                else {
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                }
+            }
+            else if (ship_indeces[i] > 55) {
+                if (ship_indeces[i] % 8 === 0) {
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                }
+                else if (ship_indeces[i] % 8 === 7) {
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                }
+                else {
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                }
+            }
+            else {
+                if (ship_indeces[i] % 8 === 0) {
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                }
+                else if (ship_indeces[i] % 8 === 7) {
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                }
+                else {
+                    if (board[ship_indeces[i] - 8] === '*') {
+                        board[ship_indeces[i] - 8] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 1] === '*') {
+                        board[ship_indeces[i] + 1] = 'w';
+                    }
+                    if (board[ship_indeces[i] + 8] === '*') {
+                        board[ship_indeces[i] + 8] = 'w';
+                    }
+                    if (board[ship_indeces[i] - 1] === '*') {
+                        board[ship_indeces[i] - 1] = 'w';
+                    }
+                }
+            }
+
+        }
+    }
 
     // check to see if the ship that was just hit has sunk. if so change all of the
     // bordering water markers to 'w'
     function check_ship_sunk(board, idx) {
+        var ship_num = -board[idx];
+        if (board.indexOf(ship_num) === -1) {
+            console.log("You sunk my battleship!!!");
+            finish_sinking(board, idx);
+        }
     }
 
     // if there are ten squares with negative numbers, then there is a winner
@@ -232,7 +372,6 @@ var app = function() {
                 }
             }
         }
-        console.log("Player1 num_neg" + num_neg);
         if (num_neg === 10){
             self.vue.winner = "player_2";
             self.vue.is_my_turn = false;
@@ -247,7 +386,6 @@ var app = function() {
                 }
             }
         }
-        console.log("Player2 num_neg" + num_neg);
         if (num_neg === 10){
             self.vue.winner = "player_1";
             self.vue.is_my_turn = false;
@@ -493,7 +631,8 @@ var app = function() {
             intruding: false,
             turn_counter: null,
             game_counter: null,
-            winner: null
+            winner: null,
+            waiting_on_opp: false
         },
         methods: {
             set_magic_word: self.set_magic_word,
